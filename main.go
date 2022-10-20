@@ -101,29 +101,29 @@ func signIn(ctx *fiber.Ctx) {
 	var accountDto dto.Login
 
 	if err := ctx.BodyParser(&accountDto); err != nil {
-		ctx.Status(http.StatusBadRequest).JSON(responses.AccountResponse{Status: http.StatusBadRequest,
+		ctx.Status(http.StatusBadRequest).JSON(responses.Account{Status: http.StatusBadRequest,
 			Message: "error", Data: &fiber.Map{"data": err.Error()}})
 		return
 	}
 
 	if validationErr := validate.Struct(&accountDto); validationErr != nil {
-		ctx.Status(http.StatusBadRequest).JSON(responses.AccountResponse{Status: http.StatusBadRequest,
+		ctx.Status(http.StatusBadRequest).JSON(responses.Account{Status: http.StatusBadRequest,
 			Message: "error", Data: &fiber.Map{"data": validationErr.Error()}})
 		return
 	}
 
 	account, err := service.Login(accountDto.Email, accountDto.Password)
 	if err != nil {
-		ctx.Status(http.StatusUnauthorized).JSON(responses.AccountResponse{Status: http.StatusInternalServerError,
+		ctx.Status(http.StatusUnauthorized).JSON(responses.Account{Status: http.StatusInternalServerError,
 			Message: "error", Data: &fiber.Map{"data": err}})
 		return
 	}
-	ctx.Status(http.StatusOK).JSON(responses.AccountResponse{Status: http.StatusCreated,
+	ctx.Status(http.StatusOK).JSON(responses.Account{Status: http.StatusCreated,
 		Message: "success", Data: &fiber.Map{"data": account}})
 
 	token, exp, err := services.CreateJWTToken(account.Id)
 	if err != nil {
-		ctx.Status(http.StatusInternalServerError).JSON(responses.AccountResponse{Status: http.StatusInternalServerError,
+		ctx.Status(http.StatusInternalServerError).JSON(responses.Account{Status: http.StatusInternalServerError,
 			Message: "error", Data: &fiber.Map{"data": err}})
 		return
 	}
@@ -134,12 +134,12 @@ func signIn(ctx *fiber.Ctx) {
 func findAll(ctx *fiber.Ctx) {
 	accounts, err := service.FindAll()
 	if err != nil {
-		ctx.Status(http.StatusInternalServerError).JSON(responses.AccountResponse{Status: http.StatusInternalServerError,
+		ctx.Status(http.StatusInternalServerError).JSON(responses.Account{Status: http.StatusInternalServerError,
 			Message: "error", Data: &fiber.Map{"data": err.Error()}})
 		return
 	}
 	ctx.Status(http.StatusOK).JSON(
-		responses.AccountResponse{Status: http.StatusOK, Message: "success", Data: &fiber.Map{"data": accounts}},
+		responses.Account{Status: http.StatusOK, Message: "success", Data: &fiber.Map{"data": accounts}},
 	)
 	return
 }
@@ -160,23 +160,23 @@ func createAccount(ctx *fiber.Ctx) {
 	var accountDto dto.Registration
 
 	if err := ctx.BodyParser(&accountDto); err != nil {
-		ctx.Status(http.StatusBadRequest).JSON(responses.AccountResponse{Status: http.StatusBadRequest,
+		ctx.Status(http.StatusBadRequest).JSON(responses.Account{Status: http.StatusBadRequest,
 			Message: "error", Data: &fiber.Map{"data": err.Error()}})
 		return
 	}
 
 	if validationErr := validate.Struct(&accountDto); validationErr != nil {
-		ctx.Status(http.StatusBadRequest).JSON(responses.AccountResponse{Status: http.StatusBadRequest, Message: "error", Data: &fiber.Map{"data": validationErr.Error()}})
+		ctx.Status(http.StatusBadRequest).JSON(responses.Account{Status: http.StatusBadRequest, Message: "error", Data: &fiber.Map{"data": validationErr.Error()}})
 		return
 	}
 
 	account, err := service.Create(accountDto)
 	if err != nil {
-		ctx.Status(http.StatusInternalServerError).JSON(responses.AccountResponse{Status: http.StatusInternalServerError,
+		ctx.Status(http.StatusInternalServerError).JSON(responses.Account{Status: http.StatusInternalServerError,
 			Message: "error", Data: &fiber.Map{"data": err.Error()}})
 		return
 	}
-	ctx.Status(http.StatusCreated).JSON(responses.AccountResponse{Status: http.StatusCreated,
+	ctx.Status(http.StatusCreated).JSON(responses.Account{Status: http.StatusCreated,
 		Message: "success", Data: &fiber.Map{"data": account}})
 }
 
@@ -196,12 +196,12 @@ func findOne(ctx *fiber.Ctx) {
 	account, err := service.FindOne(accountId)
 
 	if err != nil {
-		ctx.Status(http.StatusInternalServerError).JSON(responses.AccountResponse{Status: http.StatusInternalServerError,
+		ctx.Status(http.StatusInternalServerError).JSON(responses.Account{Status: http.StatusInternalServerError,
 			Message: "error", Data: &fiber.Map{"data": err.Error()}})
 		return
 	}
 
-	ctx.Status(http.StatusOK).JSON(responses.AccountResponse{Status: http.StatusOK,
+	ctx.Status(http.StatusOK).JSON(responses.Account{Status: http.StatusOK,
 		Message: "success", Data: &fiber.Map{"data": account}})
 }
 
@@ -222,24 +222,24 @@ func updateAccount(ctx *fiber.Ctx) {
 	var accountDto dto.Registration
 
 	if err := ctx.BodyParser(&accountDto); err != nil {
-		ctx.Status(http.StatusBadRequest).JSON(responses.AccountResponse{Status: http.StatusBadRequest,
+		ctx.Status(http.StatusBadRequest).JSON(responses.Account{Status: http.StatusBadRequest,
 			Message: "error", Data: &fiber.Map{"data": err.Error()}})
 		return
 	}
 
 	if validationErr := validate.Struct(&accountDto); validationErr != nil {
-		ctx.Status(http.StatusBadRequest).JSON(responses.AccountResponse{Status: http.StatusBadRequest, Message: "error", Data: &fiber.Map{"data": validationErr.Error()}})
+		ctx.Status(http.StatusBadRequest).JSON(responses.Account{Status: http.StatusBadRequest, Message: "error", Data: &fiber.Map{"data": validationErr.Error()}})
 		return
 	}
 	account, err := service.Update(accountDto, accountId)
 
 	if err != nil {
-		ctx.Status(http.StatusInternalServerError).JSON(responses.AccountResponse{Status: http.StatusInternalServerError,
+		ctx.Status(http.StatusInternalServerError).JSON(responses.Account{Status: http.StatusInternalServerError,
 			Message: "error", Data: &fiber.Map{"data": err.Error()}})
 		return
 	}
 
-	ctx.Status(http.StatusOK).JSON(responses.AccountResponse{Status: http.StatusOK,
+	ctx.Status(http.StatusOK).JSON(responses.Account{Status: http.StatusOK,
 		Message: "success", Data: &fiber.Map{"data": account}})
 }
 
@@ -259,11 +259,11 @@ func deleteAccount(ctx *fiber.Ctx) {
 	err := service.Delete(userId)
 
 	if err != nil {
-		ctx.Status(http.StatusInternalServerError).JSON(responses.AccountResponse{Status: http.StatusInternalServerError, Message: "error", Data: &fiber.Map{"data": err.Error()}})
+		ctx.Status(http.StatusInternalServerError).JSON(responses.Account{Status: http.StatusInternalServerError, Message: "error", Data: &fiber.Map{"data": err.Error()}})
 		return
 	}
 
-	ctx.Status(http.StatusOK).JSON(responses.AccountResponse{Status: http.StatusOK,
+	ctx.Status(http.StatusOK).JSON(responses.Account{Status: http.StatusOK,
 		Message: "success", Data: &fiber.Map{"data": "Successfully deleted"}})
 
 }

@@ -7,4 +7,4 @@ build:
 	docker-compose -f docker-compose.yml build
 
 swag:
-	swag init -g server.go
+	swag init -g main.go

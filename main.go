@@ -2,27 +2,26 @@ package main
 
 import (
 	"crud-golang/internal/dto"
-	"crud-golang/internal/repositories"
+	"crud-golang/internal/repositories/mongo"
 	services "crud-golang/internal/services"
+	"crud-golang/internal/services/database"
 	"crud-golang/pkg/client/mongodb"
 	"crud-golang/pkg/logging"
 	"crud-golang/pkg/responses"
 	swagger "github.com/arsmn/fiber-swagger"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber"
-	jwtware "github.com/gofiber/jwt/v3"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 )
 
 var (
-	repository = repositories.NewRepository()
-	service    = services.NewService(repository)
+	repository = mongo.NewRepository()
+	service    = database.NewService(repository)
 	validate   = validator.New()
 )
-
-const jwtSecret = "secret"
 
 // @title CRUD account
 // @version 1.0
@@ -36,7 +35,10 @@ const jwtSecret = "secret"
 // @name Authorization
 func main() {
 	logging.NewLogger()
-	mongodb.ConnectDB()
+	_, err := mongodb.ConnectDB()
+	if err != nil {
+		return
+	}
 	app := fiber.New()
 
 	app.Post("/login", signIn)
@@ -47,16 +49,31 @@ func main() {
 	accountApi.Put("/:accountId", updateAccount)
 	accountApi.Delete("/:accountId", deleteAccount)
 
-	app.Get("/hello", func(ctx *fiber.Ctx) {
-		jwtware.New(jwtware.Config{
-			SigningKey: []byte("secret"),
-		})
-		ctx.Send("Hello, world!")
-	})
+	//app.Use("/hello", func(ctx *fiber.Ctx) {
+	//	jwtware.New(jwtware.Config{
+	//		SigningKey: []byte(os.Getenv("SECRET")),
+	//	})
+	//
+	//	ctx.Send("Hello, world!")
+	//})
+	app.Get("/private", private)
 
 	registerSwagger(app)
 
 	app.Listen(":8181")
+}
+
+func private(ctx *fiber.Ctx) {
+	authorization := ctx.Fasthttp.Request.Header.Peek("Authorization")
+	_, str, _ := strings.Cut(string(authorization), "Bearer ")
+
+	prime, err := services.VerifyJWT(str)
+	if err != nil {
+		ctx.Status(fiber.StatusUnauthorized)
+	}
+	if prime {
+		ctx.JSON(fiber.Map{"Data": "Hello world!"})
+	}
 }
 
 func registerSwagger(app *fiber.App) {
@@ -74,14 +91,14 @@ func registerSwagger(app *fiber.App) {
 // @ID signin
 // @Accept  json
 // @Produce  json
-// @Param input body todo.User true "account info"
+// @Param input body dto.Login true "account info"
 // @Success 200 {integer} integer 1
-// @Failure 400,404 {object} errorResponse
-// @Failure 500 {object} errorResponse
-// @Failure default {object} errorResponse
+// @Failure 400,404 {object} HTTPError
+// @Failure 500 {object} HTTPError
+// @Failure default {object} HTTPError
 // @Router /auth/sign-up [post]
 func signIn(ctx *fiber.Ctx) {
-	var accountDto dto.LoginDto
+	var accountDto dto.Login
 
 	if err := ctx.BodyParser(&accountDto); err != nil {
 		ctx.Status(http.StatusBadRequest).JSON(responses.AccountResponse{Status: http.StatusBadRequest,
@@ -104,7 +121,7 @@ func signIn(ctx *fiber.Ctx) {
 	ctx.Status(http.StatusOK).JSON(responses.AccountResponse{Status: http.StatusCreated,
 		Message: "success", Data: &fiber.Map{"data": account}})
 
-	token, exp, err := services.CreateJWTToken(account)
+	token, exp, err := services.CreateJWTToken(account.Id)
 	if err != nil {
 		ctx.Status(http.StatusInternalServerError).JSON(responses.AccountResponse{Status: http.StatusInternalServerError,
 			Message: "error", Data: &fiber.Map{"data": err}})
@@ -133,14 +150,14 @@ func findAll(ctx *fiber.Ctx) {
 // @ID create-account
 // @Accept  json
 // @Produce  json
-// @Param input body dto.AccountDto true "account info"
+// @Param input body dto.Registration true "Registration info"
 // @Success 200 {object} models.Account
-// @Failure 400,404 {object} errorResponse
-// @Failure 500 {object} errorResponse
-// @Failure default {object} errorResponse
+// @Failure 400,404 {object} HTTPError
+// @Failure 500 {object} HTTPError
+// @Failure default {object} HTTPError
 // @Router /accounts/ [post]
 func createAccount(ctx *fiber.Ctx) {
-	var accountDto dto.AccountDto
+	var accountDto dto.Registration
 
 	if err := ctx.BodyParser(&accountDto); err != nil {
 		ctx.Status(http.StatusBadRequest).JSON(responses.AccountResponse{Status: http.StatusBadRequest,
@@ -170,9 +187,9 @@ func createAccount(ctx *fiber.Ctx) {
 // @Accept  json
 // @Produce  json
 // @Success 200 {object} models.Account
-// @Failure 400,404 {object} errorResponse
-// @Failure 500 {object} errorResponse
-// @Failure default {object} errorResponse
+// @Failure 400,404 {object} HTTPError
+// @Failure 500 {object} HTTPError
+// @Failure default {object} HTTPError
 // @Router /accounts/:accountId [get]
 func findOne(ctx *fiber.Ctx) {
 	accountId := ctx.Params("accountId")
@@ -194,15 +211,15 @@ func findOne(ctx *fiber.Ctx) {
 // @ID update-account
 // @Accept  json
 // @Produce  json
-// @Param input body dto.AccountDto true "account info"
+// @Param input body dto.Registration true "account info"
 // @Success 200 {object} models.Account
-// @Failure 400,404 {object} errorResponse
-// @Failure 500 {object} errorResponse
-// @Failure default {object} errorResponse
+// @Failure 400,404 {object} HTTPError
+// @Failure 500 {object} HTTPError
+// @Failure default {object} HTTPError
 // @Router /accounts/:accountId [put]
 func updateAccount(ctx *fiber.Ctx) {
 	accountId := ctx.Params("accountId")
-	var accountDto dto.AccountDto
+	var accountDto dto.Registration
 
 	if err := ctx.BodyParser(&accountDto); err != nil {
 		ctx.Status(http.StatusBadRequest).JSON(responses.AccountResponse{Status: http.StatusBadRequest,
@@ -232,9 +249,9 @@ func updateAccount(ctx *fiber.Ctx) {
 // @ID delete-account
 // @Accept  json
 // @Produce  json
-// @Failure 400,404 {object} errorResponse
-// @Failure 500 {object} errorResponse
-// @Failure default {object} errorResponse
+// @Failure 400,404 {object} HTTPError
+// @Failure 500 {object} HTTPError
+// @Failure default {object} HTTPError
 // @Router /accounts/:accountId [put]
 func deleteAccount(ctx *fiber.Ctx) {
 	userId := ctx.Params("userId")
@@ -249,4 +266,9 @@ func deleteAccount(ctx *fiber.Ctx) {
 	ctx.Status(http.StatusOK).JSON(responses.AccountResponse{Status: http.StatusOK,
 		Message: "success", Data: &fiber.Map{"data": "Successfully deleted"}})
 
+}
+
+type HTTPError struct {
+	status  string
+	message string
 }

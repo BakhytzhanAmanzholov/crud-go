@@ -25,7 +25,7 @@ func getLoggerLevel(lvl string) zapcore.Level {
 	return zapcore.InfoLevel
 }
 
-func NewLogger() {
+func NewLogger() *zap.Logger {
 	fileName := "zap.log"
 	level := getLoggerLevel("debug")
 	syncWriter := zapcore.AddSync(&lumberjack.Logger{
@@ -39,6 +39,7 @@ func NewLogger() {
 	core := zapcore.NewCore(zapcore.NewJSONEncoder(encoder), syncWriter, zap.NewAtomicLevelAt(level))
 	logger := zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1))
 	errorLogger = logger.Sugar()
+	return logger
 }
 
 func Debug(args ...interface{}) {

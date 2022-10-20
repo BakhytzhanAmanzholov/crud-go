@@ -1,8 +1,9 @@
-package repositories
+package mongo
 
 import (
 	"context"
 	"crud-golang/internal/models"
+	"crud-golang/internal/repositories"
 	"crud-golang/pkg/client/mongodb"
 	"crud-golang/pkg/logging"
 	"errors"
@@ -18,24 +19,22 @@ type repository struct {
 	accountsCollections *mongo.Collection
 }
 
-func (r repository) Create(user *models.Account) (models.Account, error) {
+func (r repository) Create(user *models.Account, ctx context.Context) (*models.Account, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	_, err := accountsCollections.InsertOne(ctx, user)
 	if err != nil {
 		logging.Error(err)
-		return models.Account{}, errors.New("database error")
+		return user, errors.New("database error")
 	}
 
 	logging.Infof("Create account by email", user.Email)
-	return *user, err
+	return user, err
 }
 
-func (r repository) FindAll() (u []models.Account, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+func (r repository) FindAll(ctx context.Context) (u *[]models.Account, err error) {
 	var accounts []models.Account
-	defer cancel()
 
 	results, err := accountsCollections.Find(ctx, bson.M{})
 
@@ -55,30 +54,31 @@ func (r repository) FindAll() (u []models.Account, err error) {
 		accounts = append(accounts, account)
 	}
 	logging.Infof("find all accounts")
-	return accounts, err
+	return &accounts, err
 }
 
-func (r repository) FindOne(id string) (models.Account, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+func (r repository) FindOne(id string, ctx context.Context) (*models.Account, error) {
 	var user models.Account
-	defer cancel()
 
-	objId, _ := primitive.ObjectIDFromHex(id)
+	objId, err := primitive.ObjectIDFromHex(id)
 
-	err := accountsCollections.FindOne(ctx, bson.M{"id": objId}).Decode(&user)
+	if err != nil {
+		logging.Fatal(err)
+		return nil, errors.New("database error")
+	}
+
+	err = accountsCollections.FindOne(ctx, bson.M{"id": objId}).Decode(&user)
 
 	if err != nil {
 		logging.Error(err)
-		return models.Account{}, errors.New("database error")
+		return nil, errors.New("database error")
 	}
 
 	logging.Infof("Find account by id, email: ", user.Email)
-	return user, err
+	return &user, err
 }
 
-func (r repository) Update(id string, user models.Account) (models.Account, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+func (r repository) Update(id string, user models.Account, ctx context.Context) (*models.Account, error) {
 
 	objId, _ := primitive.ObjectIDFromHex(id)
 
@@ -88,7 +88,7 @@ func (r repository) Update(id string, user models.Account) (models.Account, erro
 
 	if err != nil {
 		logging.Error(err)
-		return models.Account{}, errors.New("database error")
+		return &user, errors.New("database error")
 	}
 
 	var updatedUser models.Account
@@ -96,17 +96,15 @@ func (r repository) Update(id string, user models.Account) (models.Account, erro
 		err := accountsCollections.FindOne(ctx, bson.M{"id": objId}).Decode(&updatedUser)
 		if err != nil {
 			logging.Error(err)
-			return models.Account{}, errors.New("database error")
+			return nil, errors.New("database error")
 		}
 	}
 
 	logging.Infof("Update account", user.Email)
-	return updatedUser, err
+	return &updatedUser, err
 }
 
-func (r repository) Delete(id string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+func (r repository) Delete(id string, ctx context.Context) error {
 
 	objId, _ := primitive.ObjectIDFromHex(id)
 
@@ -126,24 +124,22 @@ func (r repository) Delete(id string) error {
 	return nil
 }
 
-func (r repository) FindByEmail(email string) (models.Account, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+func (r repository) FindByEmail(email string, ctx context.Context) (*models.Account, error) {
 	filter := bson.M{"email": email}
 	result := models.Account{}
 	err := accountsCollections.FindOne(ctx, filter).Decode(&result)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return models.Account{}, nil
+			return nil, errors.New("database error")
 		}
 
-		return models.Account{}, errors.New("incorrect email")
+		return nil, errors.New("incorrect email")
 	}
 
 	logging.Infof("Find account by email", email)
-	return result, nil
+	return &result, nil
 }
 
-func NewRepository() Repository {
+func NewRepository() repositories.Repository {
 	return &repository{}
 }

@@ -14,6 +14,7 @@ services:
       - database
     environment:
       MONGODB_URI: mongodb://database:27017
+      SECRET: secret
 
   database:
     image: mongo:5.0
@@ -21,7 +22,7 @@ services:
     ports:
       - 27017:27017
     volumes:
-      - ~/apps/mongo:/data/db
+      - ~/apps/mongo:/data/database
     networks:
       - cloud
 

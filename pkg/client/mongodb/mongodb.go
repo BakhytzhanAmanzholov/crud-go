@@ -10,21 +10,12 @@ import (
 	"time"
 )
 
-var DB *mongo.Client = ConnectDB()
-var collection *mongo.Collection
+//var DB *mongo.Client = ConnectDB()
 
-func ConnectDB() *mongo.Client {
+var DB, _ = ConnectDB()
+
+func ConnectDB() (*mongo.Client, error) {
 	client, err := mongo.NewClient(options.Client().ApplyURI(os.Getenv("MONGODB_URI")))
-	//ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	//defer cancel()
-	//client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(os.Getenv("MONGODB_URI")))
-	//defer func() {
-	//	if err = client.Disconnect(ctx); err != nil {
-	//		panic(err)
-	//	}
-	//}()
-
-	collection = GetCollection(client, "accounts")
 
 	if err != nil {
 		log.Fatal(err)
@@ -32,7 +23,7 @@ func ConnectDB() *mongo.Client {
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	err = client.Connect(ctx)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	err = client.Ping(ctx, nil)
@@ -40,7 +31,7 @@ func ConnectDB() *mongo.Client {
 		log.Fatal(err)
 	}
 	log.Print("Connected to MongoDB")
-	return client
+	return client, nil
 }
 
 func EnvMongoURI() string {

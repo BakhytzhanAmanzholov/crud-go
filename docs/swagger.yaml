@@ -1,0 +1,188 @@
+basePath: /accounts
+definitions:
+  dto.Login:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 6
+        type: string
+    type: object
+  dto.Registration:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      username:
+        minLength: 3
+        type: string
+    type: object
+  main.HTTPError:
+    type: object
+  models.Account:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      username:
+        minLength: 3
+        type: string
+    required:
+    - id
+    type: object
+host: localhost:8181
+info:
+  contact: {}
+  description: API Server for CRUD Application
+  title: CRUD account
+  version: "1.0"
+paths:
+  /accounts/:
+    post:
+      consumes:
+      - application/json
+      description: create account
+      operationId: create-account
+      parameters:
+      - description: Registration info
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.Registration'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Account'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.HTTPError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/main.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.HTTPError'
+        default:
+          description: ""
+          schema:
+            $ref: '#/definitions/main.HTTPError'
+      summary: SignUp
+      tags:
+      - auth
+  /accounts/:accountId:
+    get:
+      consumes:
+      - application/json
+      description: Find account by id
+      operationId: find-account-id
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Account'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.HTTPError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/main.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.HTTPError'
+        default:
+          description: ""
+          schema:
+            $ref: '#/definitions/main.HTTPError'
+      summary: Find by ID
+      tags:
+      - auth
+    put:
+      consumes:
+      - application/json
+      description: delete account by id
+      operationId: delete-account
+      produces:
+      - application/json
+      responses:
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.HTTPError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/main.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.HTTPError'
+        default:
+          description: ""
+          schema:
+            $ref: '#/definitions/main.HTTPError'
+      summary: Delete account
+      tags:
+      - auth
+  /auth/sign-up:
+    post:
+      consumes:
+      - application/json
+      description: create account
+      operationId: signin
+      parameters:
+      - description: account info
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.Login'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: integer
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.HTTPError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/main.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.HTTPError'
+        default:
+          description: ""
+          schema:
+            $ref: '#/definitions/main.HTTPError'
+      summary: SignIn
+      tags:
+      - auth
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

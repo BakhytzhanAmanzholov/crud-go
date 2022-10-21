@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  go-application:
+    image:
+      golang-image
+    container_name:
+      go-application
+    networks:
+      - cloud
+    ports:
+      - "80:8181"
+    depends_on:
+      - database
+    environment:
+      MONGODB_URI: mongodb://database:27017
+      SECRET: secret
+
+  database:
+    image: mongo:5.0
+    container_name: mongodb-container
+    ports:
+      - 27017:27017
+    volumes:
+      - ~/apps/mongo:/data/database
+    networks:
+      - cloud
+
+networks:
+  cloud:
+    external: true
+
